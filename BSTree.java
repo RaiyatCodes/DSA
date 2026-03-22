@@ -5,8 +5,13 @@
 */
 import java.util.Comparator;
 import java.util.NoSuchElementException;
+import java.util.function.Consumer;
+import java.util.Iterator;
+import java.lang.Cloneable;
+import java.util.Queue;
+import java.util.LinkedList;
 
-public class BSTree<E>{
+public class BSTree<E> implements Cloneable, Iterable<E>{
     /**
      * Node Class of which the tree is made of
     */
@@ -18,6 +23,40 @@ public class BSTree<E>{
         
         public Node(E data){
             this.data = data;
+        }
+    }
+    
+    private class BSTreeIterator implements Iterator<E>{
+        Node curr;
+        Queue<Node> queue = new LinkedList<>();
+        
+        public BSTreeIterator(){
+            curr = root;
+            queue.add(curr);
+        }
+        public boolean hasNext(){
+            if(curr == null){
+                return false;
+            }
+            if(queue.isEmpty()){
+                return false;
+            }
+            return true;
+        }
+        public E next(){
+            E data = null;
+            if(hasNext()){
+                Node temp = queue.poll();
+                data = temp.data;
+                if(temp.left != null){
+                    queue.add(temp.left);
+                }
+                if(temp.right != null){
+                    queue.add(temp.right);
+                }
+                return data;
+            }
+            throw new NoSuchElementException();
         }
     }
     
@@ -33,6 +72,17 @@ public class BSTree<E>{
     public BSTree(Comparator<E> comp){
         this.comp = comp;
         root = null;
+    }
+    
+    /**
+     * Creates the tree with from the given array of items
+     * @param comp   The comparator passed to use for comparing the Nodes
+     * @param items  The list of items of which the tree is made
+     * @return A tree that is created with the specified items
+    */
+    public BSTree(Comparator<E> comp, E... items){
+        this.comp = comp;
+        this.root = rebuildPreorder(items, 0, items.length - 1);
     }
     
     /**
@@ -325,8 +375,224 @@ public class BSTree<E>{
     /**
      * Returns a string representation of the tree
     */
+//    public String toString(){
+//        return new BSTreeUtils<E>().toString(root);
+//    }
+    
+    /**
+    * Performs preorder traversal of this tree 
+    * 
+    * @param consumer  an instance of the Consumer interface
+    */
+    public void preorder(Consumer<E> consumer){
+        preorder(consumer, root);
+    }
+    
+    /**
+     * Performs preorder traversal of the tree rooted at the given node curr
+     * 
+     * @param consumer  an instance of the Consumer interface
+     * @param curr   root of the tree to be traversed
+    */
+    private void preorder(Consumer<E> consumer, Node curr){ 
+        if(curr == null){
+            return;
+        }
+        consumer.accept(curr.data);
+        preorder(consumer, curr.left);
+        preorder(consumer, curr.right);
+    }
+    
+    /**
+     * Performs inorder traversal of this tree
+     * @param consumer   an instance of the Consumer interface
+    */
+    public void inorder(Consumer<E> consumer){
+        inorder(consumer, root);
+    }
+    
+    /**
+     * Performs inorder traversal of the tree rooted at the given node curr
+     * 
+     * @param consumer   an instance of the Consumer interface
+     * @param curr    the root of the tree to be traversed
+    */
+    private void inorder(Consumer<E> consumer, Node curr){
+        if(curr == null){
+            return;
+        }
+        inorder(consumer, curr.left);
+        consumer.accept(curr.data);
+        inorder(consumer, curr.right);
+    }
+    
+    /**
+     * Performs postorder traversal of this tree
+     * 
+     * @param consumer   and instance of the Consumer interface
+    */
+    public void postorder(Consumer<E> consumer){
+        postorder(consumer, root);
+    }
+    
+    /**
+     * Performs postorder traversal of the tree rooted at the given node curr
+     * 
+     * @param consumer   an instance of the Consumer interface
+     * @param curr    the root of the tree to be traversed
+     */
+    private void postorder(Consumer<E> consumer, Node curr){
+        if(curr == null){
+            return;
+        }
+        postorder(consumer, curr.left);
+        postorder(consumer, curr.right);
+        consumer.accept(curr.data);
+    }
+    
+    /**
+     * Returns true if the given object is equal to this tree 
+     * 
+     * @param other   an instance of Object with whom the tree is compared
+     * @return True if the other object is equal to this tree
+    */
+    public boolean equals(Object object){
+        if(!(object instanceof BSTree)){
+            return false;
+        }
+        else if(this == object){
+            return true;
+        }
+        else{
+            BSTree<E> otherTree = (BSTree<E>) object;
+            if(equals(root,otherTree.root)){
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Recursive version of equals() method
+     * 
+     * @param root1   the root of the tree 
+     * @param root2   the root of another tree
+     * @return True if the trees rooted at the given nodes are identical i.e. have identical items and identical structure
+    */
+    private boolean equals(Node root1, Node root2){
+        if(root1 == null && root2 == null){
+            return true;
+        }
+        else if(root1 == null && root2 != null){
+            return false;
+        }
+        else if(root1 != null && root2 == null){
+            return false;
+        }
+        else if(root1.data.equals(root2.data)){
+            boolean leftSubTree = equals(root1.left,root2.left);
+            boolean rightSubTree = equals(root1.right, root2.right);
+            return (leftSubTree && rightSubTree);
+        }
+        return false;
+    }
+    
+    /**
+     *Returns a copy of this tree
+     * 
+     * @return an instance of Object
+    */
+    public Object clone(){
+        try {
+            BSTree<E> copy = (BSTree<E>) super.clone();
+            copy.comp = this.comp;
+            copy.root = copyTree(this.root);
+            return copy;
+        }
+        catch (CloneNotSupportedException e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    /**
+     * Returns a copy of the tree rooted at the given node 
+     * 
+     * @return an instance of Node
+    */
+    private Node copyTree(Node curr){
+        if(curr ==  null){
+            return null;
+        }
+        Node newNode = new Node(curr.data);
+        newNode.left = copyTree(curr.left);
+        if(newNode.left != null){
+            newNode.left.parent = newNode;
+        }
+        newNode.right = copyTree(curr.right);
+        if(newNode.right != null){
+            newNode.right.parent = newNode;
+        }
+        return newNode;
+    }
+    
+    /**
+     * Creates the tree from the given preorder array of items between indices 
+     * 
+     * @param items   the list of items if which the tree will be constructed
+     * @param i    the integer value of the starting index
+     * @param j    the integer value of the ending index
+     * @return an instance of Node
+    */
+    private Node rebuildPreorder(E[] items, int i, int j ){
+        if(i >= j){
+            Node newNode = new Node(items[i]);
+            return newNode;
+        }
+        Node newNode = new Node(items[i]);
+        int m = -1;
+        for(int startingIndex = i+1; startingIndex <= j; startingIndex++){
+            if(comp.compare(items[startingIndex], newNode.data) == 1){
+                m = startingIndex;
+                break; 
+            }
+        }
+        if(m == -1){
+            newNode.left = rebuildPreorder(items, i+1,j);
+            newNode.left.parent = newNode;
+        }
+        else if (m == i + 1){
+            newNode.right = rebuildPreorder(items, m, j);
+            newNode.right.parent = newNode;
+        }
+        if(i + 1 < m){
+            newNode.left = rebuildPreorder(items, i+1 , m-1);
+            newNode.left.parent = newNode;
+            newNode.right = rebuildPreorder(items, m, j);
+            newNode.right.parent = newNode;
+        }
+        return newNode;
+    } 
+    
+    /**
+     * Returns a string representation of the tree listing the elements in level-order sequence in the format [a b c d]
+    */
     public String toString(){
-        return new BSTreeUtils<E>().toString(root);
+        String str = "";
+        Iterator<E> iterator = this.iterator();
+        while(iterator.hasNext()){
+            E item  = iterator.next();
+            str += item + " ";
+        }
+        return "[" + str.trim() + "]";
+    }
+    
+    /**
+     * Runs an iterator over this tree that enumerates the elements in level-order sequence 
+     * 
+     * @return an instance of Iterator
+    */
+    public Iterator<E> iterator(){
+        return new BSTreeIterator();
     }
 }
-
