@@ -1,3 +1,6 @@
+/**
+Analyzing the performance of Merge Sort, Quick Sort & Heap Sort for array input sizes ranging from 100,000-1 million
+*/
 public class SortAlgos{
     public static void main (String[] args){
         compareSortAlgos(100000, 1000000, 100000, "sorted");
